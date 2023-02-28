@@ -4,6 +4,8 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 import os
+from .robot_localization import RobotLocalizer
+import numpy as np
 
 from geometry_msgs.msg import Twist
 
@@ -16,18 +18,22 @@ class MazeSolver(Node):
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.maze_solving)
         self.bridge = CvBridge() # Convert the ros images to openCV data.
+        self.robot_localizer = RobotLocalizer()
+        self.sat_view = np.zeros((100, 100))
+        self.vel_msg = Twist()
 
     
     def get_video_feed_cb(self, data):
         frame = self.bridge.imgmsg_to_cv2(data, 'bgr8')
-        cv2.imshow('output', frame)
-        cv2.waitKey(1)
+        self.sat_view = frame
+        
 
     def maze_solving(self):
-        msg = Twist()
-        msg.linear.x = 0.5
+        frame_display = self.sat_view.copy()
+        self.robot_localizer.localize_robot(self.sat_view, frame_display)
+        # msg.linear.x = 0.5
         # msg.angular.z = 0.3
-        self.publisher_.publish(msg)
+        self.publisher_.publish(self.vel_msg)
 
 
 
