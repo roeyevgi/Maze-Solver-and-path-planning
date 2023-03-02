@@ -5,6 +5,7 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 import os
 from .robot_localization import RobotLocalizer
+from .robot_mapping import RobotMapper
 import numpy as np
 
 from geometry_msgs.msg import Twist
@@ -19,6 +20,7 @@ class MazeSolver(Node):
         self.timer = self.create_timer(timer_period, self.maze_solving)
         self.bridge = CvBridge() # Convert the ros images to openCV data.
         self.robot_localizer = RobotLocalizer()
+        self.robot_mapper = RobotMapper()
         self.sat_view = np.zeros((100, 100))
         self.vel_msg = Twist()
 
@@ -31,6 +33,7 @@ class MazeSolver(Node):
     def maze_solving(self):
         frame_display = self.sat_view.copy()
         self.robot_localizer.localize_robot(self.sat_view, frame_display)
+        self.robot_mapper.maze_to_graph(self.robot_localizer.maze_og)
         # msg.linear.x = 0.5
         # msg.angular.z = 0.3
         self.publisher_.publish(self.vel_msg)
