@@ -35,6 +35,7 @@ class RobotMapper():
         self.graph = Graph()
         # Display the connection between the nodes.
         self.maze_connect = []
+        self.maze = 0
 
         # Connection status to each vertex.
         self.connected_left = False
@@ -74,7 +75,7 @@ class RobotMapper():
 
                 if not self.connected_upleft:
                     # Vertex has connected to its up_left neighbor.
-                    self.display_connected_nodes(current_node, neighbor_node, 'UPLEFT', (0,0,255))
+                    self.display_connected_nodes(current_node, neighbor_node, 'UPLEFT', (0,128,255))
                     self.connected_upleft = True
                     # Check up route next.
                     step_l = 0
@@ -83,7 +84,7 @@ class RobotMapper():
 
                 if not self.connected_up:
                     # Vertex has connected to its up neighbor.
-                    self.display_connected_nodes(current_node, neighbor_node, 'UP', (0,0,255))
+                    self.display_connected_nodes(current_node, neighbor_node, 'UP', (0,255,0))
                     self.connected_up = True
                     # Check up_right next.
                     step_l = -1
@@ -92,7 +93,7 @@ class RobotMapper():
 
                 if not self.connected_upright:
                     # Vertex has connected to its up_right neighbor.
-                    self.display_connected_nodes(current_node, neighbor_node, 'UPRIGHT', (0,0,255))
+                    self.display_connected_nodes(current_node, neighbor_node, 'UPRIGHT', (255,0,0))
                     self.connected_upright = True
                 # Cicle has been completed, all disired neighbors has been found and connected.
 
@@ -164,6 +165,8 @@ class RobotMapper():
             cv2.imshow('Maze (thinned X2 + crop + overlay)', extrected_maze_cropped)
 
             self.one_pass(thinned_cropped)
+            self.maze = thinned_cropped
+            self.graph_is_ready = True
             cv2.waitKey(0)
 
 
@@ -188,8 +191,6 @@ class RobotMapper():
         for row in range(rows):
             for col in range(cols):
                 if maze[row][col] == 255:
-                    # if debug_mapping:
-                    #     self.maze_connect = cv2.cvtColor(maze, cv2.COLOR_GRAY2BGR)
                     # Possible IP. (intrest point) ==> Find surrounding pixels intensities
                     top_left, top, top_right, right, btm_right, btm, btm_left, left, paths = self.get_surround_pixel_intensities(maze.copy(), row, col)
                     
@@ -213,14 +214,14 @@ class RobotMapper():
                     
                     # Check if it is a dead end.
                     elif paths == 1:
-                        crop = maze[row-1:row+2, col-1:col-2]
+                        crop = maze[row-1:row+2, col-1:col+2]
+                        print(" ** [Dead End] ** \n" ,crop)
                         maze_bgr[row][col] = (0, 0, 255) # Red
                         if draw_interest_points:
                             maze_bgr = cv2.circle(maze_bgr, (col, row), 10, (0,0,255), 2)
                             cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_DeadEnd_')
-                            self.graph.start = (row, col)
                             self.reset_connect_parameters()
                             self.connect_neighbors(maze, row, col, case='_DeadEnd_')
 
@@ -231,12 +232,12 @@ class RobotMapper():
                         nzero_ptA = (nzero_loc[0][0], nzero_loc[1][0])
                         nzero_ptB = (nzero_loc[0][2], nzero_loc[1][2])
                         # If it is a turn.
-                        if not (((2 - nzero_ptA[0]) == nzero_ptB[0]) and (2 - nzero_ptA[1] == nzero_ptB[1])):
+                        if not (((2 - nzero_ptA[0])==nzero_ptB[0]) and 
+                                ((2 - nzero_ptA[1])==nzero_ptB[1])):
                             maze_bgr[row][col] = (255, 0, 0) # Blue.
                             cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_Turn_')
-                            self.graph.start = (row, col)
                             self.reset_connect_parameters()
                             self.connect_neighbors(maze, row, col, case='_Turn_')
                             turns += 1
@@ -250,21 +251,20 @@ class RobotMapper():
                             cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_3-Junc_')
-                            self.graph.start = (row, col)
                             self.reset_connect_parameters()
                             self.connect_neighbors(maze, row, col, case='_3-Junc_')
                             junc_3 += 1
                         else:
                             maze_bgr[row][col] = (128, 0, 128)
                             if draw_interest_points:
-                                maze_bgr = cv2.rectangle(maze_bgr, (col-10, row-10), (col+10, row+10), (255,140,144), 2)
+                                cv2.rectangle(maze_bgr,(col-10,row-10) , (col+10,row+10), (255,215,0),4)
                             cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_4-Junc_')
-                            self.graph.start = (row, col)
                             self.reset_connect_parameters()
                             self.connect_neighbors(maze, row, col, case='_4-Junc_')
                             junc_4 += 1
+        self.maze_intrest_pts = maze_bgr
         print(f'\nInterest points: \n[Turns, 3-junction, 4-Jonction] = [{turns}, {junc_3}, {junc_4}]')
         
     # Returns the surrounding pixels for a current pixel and how many paths it has.
