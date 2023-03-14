@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 
 draw_interest_points = True
+show_cv2_imgs = False
+
 
 class Graph():
     def __init__(self):
@@ -21,9 +23,9 @@ class Graph():
             self.graph[vertex] = {}
             self.graph[vertex]['case'] = case
     
-    def display_graph(self):
-        for key, value in self.graph.items():
-            print(f'Key {key} has the value {value} ')
+    # def display_graph(self):
+    #     for key, value in self.graph.items():
+    #         print(f'Key {key} has the value {value} ')
             
 
 
@@ -46,9 +48,10 @@ class RobotMapper():
     def display_connected_nodes(self, current_node, neighbor_node, case='Unkown', color=(0,0,255)):
         current_pixel = (current_node[1],current_node[0])
         neighbor_pixel = (neighbor_node[1], neighbor_node[0])
-        print(f'-------------------) CONNECTED >> {case} <<')
+        # print(f'-------------------) CONNECTED >> {case} <<')
         self.maze_connect = cv2.line(self.maze_connect, current_pixel, neighbor_pixel, color, 1)
-        cv2.imshow('Node connected', self.maze_connect)
+        if show_cv2_imgs:
+            cv2.imshow('Node connected', self.maze_connect)
 
     # connect the current node to its neighbors in immediate [left -> top-right] region.
     def connect_neighbors(self, maze, node_row, node_col, case, step_l=1, step_up=0, tot_connected=0):
@@ -62,7 +65,7 @@ class RobotMapper():
 
                 self.graph.add_vertex(current_node,neighbor_node, neighbor_case, cost)
                 self.graph.add_vertex(neighbor_node, current_node, case, cost)
-                print(f'\nConnected {current_node} to {neighbor_node} with case [step_l,step_up] = [{step_l},{step_up}] & cost -> {cost}')
+                # print(f'\nConnected {current_node} to {neighbor_node} with case [step_l,step_up] = [{step_l},{step_up}] & cost -> {cost}')
 
                 if not self.connected_left:
                     # Vertex has connected to its left neighbor.
@@ -143,31 +146,36 @@ class RobotMapper():
 
     def maze_to_graph(self, extrected_maze):
         if not self.graph_is_ready:
-            cv2.imshow('Extracted maze', extrected_maze)
+            if show_cv2_imgs:
+                cv2.imshow('Extracted maze', extrected_maze)
             thinned = cv2.ximgproc.thinning(extrected_maze)
-            cv2.imshow('Thinned maze', thinned)
+            if show_cv2_imgs:
+                cv2.imshow('Thinned maze', thinned)
 
             # Dilate and perform thinning again to minimize unnecceary interest points.
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2,2))
             thinned_dilated = cv2.morphologyEx(thinned, cv2.MORPH_DILATE, kernel)
             _, bw2 = cv2.threshold(thinned_dilated, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
             thinned = cv2.ximgproc.thinning(bw2)
-            cv2.imshow('Maze (thinned X2)', thinned)
+            if show_cv2_imgs:
+                cv2.imshow('Maze (thinned X2)', thinned)
             thinned_cropped = thinned[self.crop_amount:thinned.shape[0]-self.crop_amount,
                     self.crop_amount:thinned.shape[1]-self.crop_amount]
-            cv2.imshow('Maze (thinned X2 + crop)', thinned_cropped)
+            if show_cv2_imgs:
+                cv2.imshow('Maze (thinned X2 + crop)', thinned_cropped)
 
             # Overlay fround path on maze occupency grid.
             extrected_maze_cropped = extrected_maze[self.crop_amount:extrected_maze.shape[0]-self.crop_amount,
                                                     self.crop_amount:extrected_maze.shape[1]-self.crop_amount]
             extrected_maze_cropped = cv2.cvtColor(extrected_maze_cropped, cv2.COLOR_GRAY2BGR)
             extrected_maze_cropped[thinned_cropped>0] = (0, 255, 255)
-            cv2.imshow('Maze (thinned X2 + crop + overlay)', extrected_maze_cropped)
+            if show_cv2_imgs:
+                cv2.imshow('Maze (thinned X2 + crop + overlay)', extrected_maze_cropped)
 
             self.one_pass(thinned_cropped)
             self.maze = thinned_cropped
             self.graph_is_ready = True
-            cv2.waitKey(0)
+            # cv2.waitKey(0)
 
 
     def one_pass(self, maze):
@@ -198,14 +206,16 @@ class RobotMapper():
                         if row == 0:
                             # Start point.
                             maze_bgr[row][col] = (0, 128, 255) # Orange
-                            cv2.imshow('Maze (IP)', maze_bgr)
+                            if show_cv2_imgs:
+                                cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the start point to the graph
                             self.graph.add_vertex((row,col), case='_Start_')
                             self.graph.start = (row, col)
                         else:
                             # Maze exit
                             maze_bgr[row][col] = (0, 255, 0) # Green
-                            cv2.imshow('Maze (IP)', maze_bgr)
+                            if show_cv2_imgs:
+                                cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the start point to the graph
                             self.graph.add_vertex((row,col), case='_End_')
                             self.graph.end = (row, col)
@@ -215,11 +225,12 @@ class RobotMapper():
                     # Check if it is a dead end.
                     elif paths == 1:
                         crop = maze[row-1:row+2, col-1:col+2]
-                        print(" ** [Dead End] ** \n" ,crop)
+                        # print(" ** [Dead End] ** \n" ,crop)
                         maze_bgr[row][col] = (0, 0, 255) # Red
                         if draw_interest_points:
                             maze_bgr = cv2.circle(maze_bgr, (col, row), 10, (0,0,255), 2)
-                            cv2.imshow('Maze (IP)', maze_bgr)
+                            if show_cv2_imgs:
+                                cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_DeadEnd_')
                             self.reset_connect_parameters()
@@ -235,7 +246,8 @@ class RobotMapper():
                         if not (((2 - nzero_ptA[0])==nzero_ptB[0]) and 
                                 ((2 - nzero_ptA[1])==nzero_ptB[1])):
                             maze_bgr[row][col] = (255, 0, 0) # Blue.
-                            cv2.imshow('Maze (IP)', maze_bgr)
+                            if show_cv2_imgs:
+                                cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_Turn_')
                             self.reset_connect_parameters()
@@ -248,7 +260,8 @@ class RobotMapper():
                             maze_bgr[row][col] = (255, 244, 128)
                             if draw_interest_points:
                                 maze_bgr = cv2.ellipse(maze_bgr, (col,row), (4,5),0 , 0, 360, (144,140,255), 2)
-                            cv2.imshow('Maze (IP)', maze_bgr)
+                            if show_cv2_imgs:
+                                cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_3-Junc_')
                             self.reset_connect_parameters()
@@ -258,14 +271,15 @@ class RobotMapper():
                             maze_bgr[row][col] = (128, 0, 128)
                             if draw_interest_points:
                                 cv2.rectangle(maze_bgr,(col-10,row-10) , (col+10,row+10), (255,215,0),4)
-                            cv2.imshow('Maze (IP)', maze_bgr)
+                            if show_cv2_imgs:
+                                cv2.imshow('Maze (IP)', maze_bgr)
                             # Add the point to the graph
                             self.graph.add_vertex((row,col), case='_4-Junc_')
                             self.reset_connect_parameters()
                             self.connect_neighbors(maze, row, col, case='_4-Junc_')
                             junc_4 += 1
         self.maze_intrest_pts = maze_bgr
-        print(f'\nInterest points: \n[Turns, 3-junction, 4-Jonction] = [{turns}, {junc_3}, {junc_4}]')
+        # print(f'\nInterest points: \n[Turns, 3-junction, 4-Jonction] = [{turns}, {junc_3}, {junc_4}]')
         
     # Returns the surrounding pixels for a current pixel and how many paths it has.
     def get_surround_pixel_intensities(self, maze, current_row, current_col):

@@ -2,29 +2,32 @@ import rclpy
 import cv2
 from rclpy.node import Node
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image
 import os
 from .robot_localization import RobotLocalizer
 from .robot_mapping import RobotMapper
 from .path_planning import PathPlanner
+from .motion_planning import MotionPlanner
 import numpy as np
 
 from geometry_msgs.msg import Twist
-
+from sensor_msgs.msg import Image
+from nav_msgs.msg import Odometry
 
 class MazeSolver(Node):
     def __init__(self):
         super().__init__('maze_solver_node')
-        self.subscriber = self.create_subscription(Image, '/top_camera/image_raw', self.get_video_feed_cb, 10)
-        self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
-        timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.maze_solving)
         self.bridge = CvBridge() # Convert the ros images to openCV data.
         self.robot_localizer = RobotLocalizer()
         self.robot_mapper = RobotMapper()
         self.robot_path_planner = PathPlanner()
+        self.robot_motion_planner = MotionPlanner()
         self.sat_view = np.zeros((100, 100))
         self.vel_msg = Twist()
+        self.subscriber = self.create_subscription(Image, '/top_camera/image_raw', self.get_video_feed_cb, 10)
+        self.pose_subscriber = self.create_subscription(Odometry, '/odom', self.robot_motion_planner.get_pose, 10)
+        self.velocity_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        timer_period = 0.5  # seconds
+        self.timer = self.create_timer(timer_period, self.maze_solving)
 
     
     def get_video_feed_cb(self, data):
@@ -40,15 +43,18 @@ class MazeSolver(Node):
         start = self.robot_mapper.graph.start
         end = self.robot_mapper.graph.end
         maze = self.robot_mapper.maze
-        self.robot_path_planner.find_path_and_display(self.robot_mapper.graph.graph, start, end, maze, method='dijisktra')
         self.robot_path_planner.find_path_and_display(self.robot_mapper.graph.graph, start, end, maze, method='a_star')
-        print(f'\nNode visited: Dijisktra VS A-Star = {self.robot_path_planner.dijisktra.dijisktra_node_visited} <----> {self.robot_path_planner.a_star.a_star_node_visited}')
-        cv2.waitKey(0)
+        # cv2.waitKey(0)
+        robot_loc = self.robot_localizer.car_location
+        path = self.robot_path_planner.path_to_goal
+        self.robot_motion_planner.navigate_path(robot_loc, path, self.vel_msg, self.velocity_publisher)
 
 
-        # msg.linear.x = 0.5
-        # msg.angular.z = 0.3
-        self.publisher_.publish(self.vel_msg)
+        # Setting the robot velocity
+        # self.vel_msg.linear.x = 0.0
+        # self.vel_msg.angular.z = 0.0
+
+        self.velocity_publisher.publish(self.vel_msg)
 
 
 

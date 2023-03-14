@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from .utilities import return_smallest_obj, return_largest_obj
 
+show_cv2_imgs = False
+
 class RobotLocalizer():
     def __init__(self):
         self.is_bg_extracted = False
@@ -38,9 +40,10 @@ class RobotLocalizer():
         frame_disp[car_mask>0] = frame_disp[car_mask>0] + (0, 64, 0)
         frame_disp[car_circular_mask>0] = (0, 0, 255)
         # Display Extracted car and localized car in frame.
-        cv2.imshow('Foreground car', car_mask)
-        cv2.imshow('car_localized', frame_disp)
-        cv2.waitKey(1)
+        if show_cv2_imgs:
+            cv2.imshow('Foreground car', car_mask)
+            cv2.imshow('car_localized', frame_disp)
+        # cv2.waitKey(1)
 
 
     # rois = region of intrest
@@ -92,13 +95,14 @@ class RobotLocalizer():
 
         self.maze_og = cv2.rotate(maze_occupencygrid, cv2.ROTATE_90_COUNTERCLOCKWISE)
         self.update_frameOfReferance(X, Y, W, H, 90)
-        cv2.imshow("1a. rois_mask",rois_mask)
-        cv2.imshow("1b. frame_car_remvd",frame_car_removed)
-        cv2.imshow("1c. Ground_replica",ground_replica)
-        cv2.imshow("1d. bg_model",self.bg_model)
-        cv2.imshow("2. maze_og",self.maze_og)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        if show_cv2_imgs:
+            cv2.imshow("1a. rois_mask",rois_mask)
+            cv2.imshow("1b. frame_car_remvd",frame_car_removed)
+            cv2.imshow("1c. Ground_replica",ground_replica)
+            cv2.imshow("1d. bg_model",self.bg_model)
+            cv2.imshow("2. maze_og",self.maze_og)
+            # cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 
     def update_frameOfReferance(self, X, Y, W, H, angle):

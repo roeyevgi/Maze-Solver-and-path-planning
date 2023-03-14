@@ -2,13 +2,14 @@ import cv2
 import numpy as np
 
 
-
+show_cv2_imgs = False
 
 class PathPlanner():
     def __init__(self):
         self.dfs = DFS()
         self.dijisktra = Dijisktra()
         self.a_star = A_Star()
+        self.path_to_goal = []
 
 
     def cords_to_pts(self, cords):
@@ -39,10 +40,11 @@ class PathPlanner():
                 self.a_star.find_best_routes(graph, start, end)
             path_to_display = self.a_star.shortest_path
         
-        print(f'path_to_display: {path_to_display}')
+        # print(f'path_to_display: {path_to_display}')
         path_pts_to_display = self.cords_to_pts(path_to_display)
+        self.path_to_goal = path_to_display
         self.draw_path_on_maze(maze, path_pts_to_display, method)
-        cv2.waitKey(0)
+        # cv2.waitKey(0)
 
     
     def draw_path_on_maze(self,maze,shortest_path_pts,method):
@@ -68,8 +70,9 @@ class PathPlanner():
             cv2.line(self.choosen_route,shortest_path_pts[i] , shortest_path_pts[i+1], color,3)
 
         img_str = 'maze (Found Path) [' + method +']'
-        cv2.namedWindow(img_str,cv2.WINDOW_FREERATIO)
-        cv2.imshow(img_str, maze_bgr)           
+        if show_cv2_imgs:
+            cv2.namedWindow(img_str,cv2.WINDOW_FREERATIO)
+            cv2.imshow(img_str, maze_bgr)           
         self.img_shortest_path = maze_bgr.copy()
 
 
