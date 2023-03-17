@@ -43,18 +43,19 @@ class MazeSolver(Node):
         start = self.robot_mapper.graph.start
         end = self.robot_mapper.graph.end
         maze = self.robot_mapper.maze
+
         self.robot_path_planner.find_path_and_display(self.robot_mapper.graph.graph, start, end, maze, method='a_star')
         # cv2.waitKey(0)
         robot_loc = self.robot_localizer.car_location
         path = self.robot_path_planner.path_to_goal
         self.robot_motion_planner.navigate_path(robot_loc, path, self.vel_msg, self.velocity_publisher)
 
+        # Display Live maze solving.
+        img_shortest_path = self.robot_path_planner.img_shortest_path
+        self.robot_motion_planner.display_control_mechanism_in_action(robot_loc,path,img_shortest_path, self.robot_localizer, frame_display)
+        cv2.imshow("Maze (Live)", frame_display)
+        cv2.waitKey(1)
 
-        # Setting the robot velocity
-        # self.vel_msg.linear.x = 0.0
-        # self.vel_msg.angular.z = 0.0
-
-        self.velocity_publisher.publish(self.vel_msg)
 
 
 

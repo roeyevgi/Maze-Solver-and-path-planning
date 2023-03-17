@@ -10,6 +10,7 @@ class PathPlanner():
         self.dijisktra = Dijisktra()
         self.a_star = A_Star()
         self.path_to_goal = []
+        self.img_shortest_path = []
 
 
     def cords_to_pts(self, cords):
@@ -42,7 +43,7 @@ class PathPlanner():
         
         # print(f'path_to_display: {path_to_display}')
         path_pts_to_display = self.cords_to_pts(path_to_display)
-        self.path_to_goal = path_to_display
+        self.path_to_goal = path_pts_to_display
         self.draw_path_on_maze(maze, path_pts_to_display, method)
         # cv2.waitKey(0)
 

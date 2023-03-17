@@ -11,11 +11,11 @@ class RobotLocalizer():
         self.maze_og = []
 
         # Transformations (crop and rotate)
-        self.orig_x = 0
-        self.orig_y = 0
+        self.orig_X = 0
+        self.orig_Y = 0
         self.orig_rows = 0
         self.orig_cols = 0
-        self.transorm_arr = []
+        self.transform_arr = []
         self.orig_rot = 0
         self.rot_mat = 0
         self.car_location = 0
@@ -106,12 +106,12 @@ class RobotLocalizer():
 
 
     def update_frameOfReferance(self, X, Y, W, H, angle):
-        self.orig_x = X
-        self.orig_y = Y
+        self.orig_X = X
+        self.orig_Y = Y
         self.orig_rows = H
         self.orig_cols = W
         self.orig_rot = angle
-        self.transorm_arr = [X, Y, W, H]
+        self.transform_arr = [X, Y, W, H]
         # Rotation matrix.
         self.rot_mat = np.array(
                                 [
@@ -136,8 +136,8 @@ class RobotLocalizer():
         robot_center = self.get_centroid(car_contour)
         robot_center_arr = np.array(robot_center)
         robot_center_trans = np.zeros_like(robot_center_arr)
-        robot_center_trans[0] = robot_center_arr[0] - self.orig_x
-        robot_center_trans[1] = robot_center_arr[1] - self.orig_y
+        robot_center_trans[0] = robot_center_arr[0] - self.orig_X
+        robot_center_trans[1] = robot_center_arr[1] - self.orig_Y
         robot_loc_on_maze = (self.rot_mat @ robot_center_trans.T).T
         # Translating the origin if neccesary
         rot_cols = self.orig_rows
